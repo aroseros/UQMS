@@ -30,12 +30,12 @@ export default function Home() {
             </Card>
           </Link>
 
-          <Link href="/dashboard" className="group">
+          <Link href="/login" className="group">
             <Card className="h-full hover:border-indigo-500 transition-all hover:shadow-lg cursor-pointer">
               <CardContent className="p-6 flex flex-col items-center gap-4">
                 <div className="text-6xl group-hover:scale-110 transition-transform">🛡️</div>
                 <div className="font-bold text-xl">Staff Agent</div>
-                <div className="text-sm text-slate-400">Serve tickets</div>
+                <div className="text-sm text-slate-400">Login to Dashboard</div>
               </CardContent>
             </Card>
           </Link>
