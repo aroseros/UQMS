@@ -102,25 +102,20 @@ export default function AdminPage() {
 
             // 2. Update Assignment
             if (editForm.faculty_id !== 'none') {
-                // Upsert assignment
+                // Enforce 1-to-1: Delete old, Insert new
+                await supabase.from('agent_assignments').delete().eq('user_id', editingId);
+
                 const { error: aError } = await supabase
                     .from('agent_assignments')
-                    .upsert({
+                    .insert({
                         user_id: editingId,
                         faculty_id: editForm.faculty_id
-                    }, { onConflict: 'user_id, faculty_id' }); // Actually unique constraint is usually (user, faculty). 
-                // Verify Constraint: unique(user_id, faculty_id) in schema.
-                // Ideally we want 1 assignment per user?
-                // The schema permits multiple. But here we treat as 'primary'.
-                // If we want to switch, we might need to delete others or just add this one.
-                // For now, let's just Insert/Upsert this one.
+                    });
 
                 if (aError) throw aError;
             } else {
-                // Remove all assignments if 'none' selected? 
-                // Maybe dangerous. Let's just not add any.
-                // Or explicitly delete?
-                // await supabase.from('agent_assignments').delete().eq('user_id', editingId);
+                // If 'none' selected, clear assignments
+                await supabase.from('agent_assignments').delete().eq('user_id', editingId);
             }
 
             toast.success('Staff updated');
