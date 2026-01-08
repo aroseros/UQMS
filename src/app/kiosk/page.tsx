@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { toast } from 'sonner';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
 // Interfaces
@@ -23,10 +23,20 @@ export default function KioskPage() {
     const supabase = createClient();
     const [faculties, setFaculties] = useState<Faculty[]>([]);
     const [loading, setLoading] = useState(false);
+    const [printerUrl, setPrinterUrl] = useState('http://localhost:8080');
+    const [showSettings, setShowSettings] = useState(false);
 
     useEffect(() => {
         loadFaculties();
+        const savedUrl = localStorage.getItem('printer_url');
+        if (savedUrl) setPrinterUrl(savedUrl);
     }, []);
+
+    const saveSettings = () => {
+        localStorage.setItem('printer_url', printerUrl);
+        setShowSettings(false);
+        toast.success('Printer URL saved');
+    };
 
     const loadFaculties = async () => {
         const { data, error } = await supabase
@@ -72,6 +82,7 @@ export default function KioskPage() {
         // Generate Ticket Number (Local random for demo, ideally DB sequence)
         const randomNum = Math.floor(100 + Math.random() * 900);
         const ticketNumber = `${prefix}-${randomNum}`;
+        const timestamp = new Date().toLocaleString();
 
         // Insert Ticket
         const { data, error } = await supabase
@@ -92,12 +103,30 @@ export default function KioskPage() {
         // Success - Print
         toast.success(`Ticket ${ticketNumber} Printed!`);
 
-        // Call Hardware Bridge with Timeout
+        // 📱 MOBILE APP BRIDGE
+        // If running inside our Android App, send data to Native Layer
+        // @ts-ignore
+        if (window.ReactNativeWebView) {
+            // @ts-ignore
+            window.ReactNativeWebView.postMessage(JSON.stringify({
+                type: 'print_ticket',
+                payload: {
+                    ticket_number: ticketNumber,
+                    date: timestamp,
+                    department: departmentId // Simple ID for now
+                }
+            }));
+            setLoading(false);
+            return; // Skip the fetch/network print if native
+        }
+
+        // Call Hardware Bridge with Timeout (Legacy/Desktop Mode)
         try {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 2000); // 2 second timeout
 
-            await fetch('http://localhost:8080/print', {
+            // Use the Helper URL
+            await fetch(`${printerUrl}/print`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -109,14 +138,49 @@ export default function KioskPage() {
             clearTimeout(timeoutId);
         } catch (e) {
             console.warn('Printer bridge not reachable or timed out');
-            // toast.warning('Ticket created! (Printer offline)'); // Optional: don't scare user
         }
 
         setLoading(false);
     };
 
     return (
-        <div className="min-h-screen bg-slate-50 p-8 flex flex-col items-center justify-center">
+        <div className="min-h-screen bg-slate-50 p-8 flex flex-col items-center justify-center relative">
+
+            {/* Hidden Settings Trigger (Bottom Right) */}
+            <div
+                className="absolute bottom-4 right-4 w-8 h-8 opacity-10 cursor-pointer"
+                onClick={() => setShowSettings(true)}
+            >
+                ⚙️
+            </div>
+
+            {/* Settings Dialog */}
+            {showSettings && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                    <Card className="w-96">
+                        <CardHeader>
+                            <CardTitle>Kiosk Settings</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">Printer Bridge URL</label>
+                                <input
+                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                    value={printerUrl}
+                                    onChange={(e) => setPrinterUrl(e.target.value)}
+                                />
+                                <p className="text-xs text-slate-500">
+                                    Format: https://xxxx.ngrok-free.app (No trailing slash)
+                                </p>
+                            </div>
+                            <div className="flex justify-end gap-2">
+                                <Button variant="outline" onClick={() => setShowSettings(false)}>Cancel</Button>
+                                <Button onClick={saveSettings}>Save</Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+            )}
 
             <div className="max-w-5xl w-full space-y-8">
                 <div className="text-center space-y-4">
