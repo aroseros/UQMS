@@ -31,12 +31,14 @@ export default function DashboardPage() {
                 .from('agent_assignments')
                 .select('faculty_id')
                 .eq('user_id', user.id)
-                .single();
+                .limit(1);
 
             if (error) {
-                toast.error('Could not find your faculty assignment');
+                toast.error('Error fetching assignment');
+            } else if (data && data.length > 0) {
+                setFacultyId(data[0].faculty_id);
             } else {
-                setFacultyId(data.faculty_id);
+                toast.error('You are not assigned to any faculty');
             }
         };
         loadAssignment();
