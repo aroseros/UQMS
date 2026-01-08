@@ -8,10 +8,16 @@ export async function middleware(request: NextRequest) {
         },
     })
 
+    // Safety Check: If keys are missing (common Vercel issue), skip Auth to allow debugging
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+        console.error('❌ Middleware: Missing Environment Variables!');
+        return response; // Allow page to load without Auth check
+    }
+
     // Create Supabase Client
     const supabase = createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        process.env.NEXT_PUBLIC_SUPABASE_URL,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
         {
             cookies: {
                 getAll() {
