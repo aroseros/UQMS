@@ -6,7 +6,7 @@ import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 export interface Ticket {
     id: string;
     ticket_number: string;
-    department_id: string;
+    faculty_id: string;
     status: 'waiting' | 'serving' | 'completed' | 'cancelled';
     created_at: string;
     served_by?: string;
@@ -14,7 +14,7 @@ export interface Ticket {
 }
 
 interface UseSupabaseQueueProps {
-    departmentId?: string; // Optional: if provided, filters by department
+    facultyId?: string; // Optional: if provided, filters by faculty
     statusFilter?: Ticket['status']; // Optional: filter by status (e.g., 'serving' for TV display)
 }
 
@@ -22,11 +22,11 @@ interface UseSupabaseQueueProps {
  * Modular Hook for Real-Time Queue Updates
  * 
  * Supports:
- * - Dynamic filtering (by dept or status)
+ * - Dynamic filtering (by faculty or status)
  * - Auto-subscription management (unsubscribes on unmount)
  * - Type-safe Supabase events
  */
-export function useSupabaseQueue({ departmentId, statusFilter }: UseSupabaseQueueProps = {}) {
+export function useSupabaseQueue({ facultyId, statusFilter }: UseSupabaseQueueProps = {}) {
     const [tickets, setTickets] = useState<Ticket[]>([]);
     const supabase = createClient();
 
@@ -38,8 +38,8 @@ export function useSupabaseQueue({ departmentId, statusFilter }: UseSupabaseQueu
                 .select('*')
                 .order('created_at', { ascending: true });
 
-            if (departmentId) {
-                query = query.eq('department_id', departmentId);
+            if (facultyId) {
+                query = query.eq('faculty_id', facultyId);
             }
             if (statusFilter) {
                 query = query.eq('status', statusFilter);
@@ -53,7 +53,7 @@ export function useSupabaseQueue({ departmentId, statusFilter }: UseSupabaseQueu
         fetchInitialData();
 
         // Real-Time Subscription
-        const channelName = `public:tickets:${departmentId || 'all'}:${statusFilter || 'all'}`;
+        const channelName = `public:tickets:${facultyId || 'all'}:${statusFilter || 'all'}`;
 
         const channel = supabase
             .channel(channelName)
@@ -66,7 +66,7 @@ export function useSupabaseQueue({ departmentId, statusFilter }: UseSupabaseQueu
                     // Note: Supabase Realtime filters are limited. simpler to filter client-side 
                     // or use precise filters if column values are static. 
                     // For dynamic complexity, we receive all and filter in callback.
-                    filter: departmentId ? `department_id=eq.${departmentId}` : undefined,
+                    filter: facultyId ? `faculty_id=eq.${facultyId}` : undefined,
                 },
                 (payload: RealtimePostgresChangesPayload<Ticket>) => {
                     handleRealtimeEvent(payload);
@@ -77,7 +77,7 @@ export function useSupabaseQueue({ departmentId, statusFilter }: UseSupabaseQueu
         return () => {
             supabase.removeChannel(channel);
         };
-    }, [departmentId, statusFilter, supabase]);
+    }, [facultyId, statusFilter, supabase]);
 
     const handleRealtimeEvent = (payload: RealtimePostgresChangesPayload<Ticket>) => {
         // Handle INSERT

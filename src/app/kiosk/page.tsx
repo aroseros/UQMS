@@ -54,32 +54,14 @@ export default function KioskPage() {
 
     const handleFacultyClick = async (faculty: Faculty) => {
         setLoading(true);
-        try {
-            // 1. Find the first department for this faculty
-            const { data: depts, error: deptError } = await supabase
-                .from('departments')
-                .select('id, prefix')
-                .eq('faculty_id', faculty.id)
-                .limit(1);
-
-            if (deptError || !depts || depts.length === 0) {
-                toast.error(`No departments found for ${faculty.name}`);
-                setLoading(false);
-                return;
-            }
-
-            const targetDept = depts[0];
-            await createTicket(targetDept.id, targetDept.prefix);
-
-        } catch (error) {
-            console.error(error);
-            toast.error('Something went wrong');
-            setLoading(false);
-        }
+        // Direct Ticket Creation for Faculty (No Departments)
+        // Check if faculty has prefix in our local type, or cast it if we fetched it
+        // The loadFaculties selects *, so it should have prefix.
+        await createTicket(faculty.id, (faculty as any).prefix || faculty.code);
     };
 
-    const createTicket = async (departmentId: string, prefix: string) => {
-        // Generate Ticket Number (Local random for demo, ideally DB sequence)
+    const createTicket = async (facultyId: string, prefix: string) => {
+        // Generate Ticket Number
         const randomNum = Math.floor(100 + Math.random() * 900);
         const ticketNumber = `${prefix}-${randomNum}`;
         const timestamp = new Date().toLocaleString();
@@ -88,7 +70,7 @@ export default function KioskPage() {
         const { data, error } = await supabase
             .from('tickets')
             .insert({
-                department_id: departmentId,
+                faculty_id: facultyId,
                 ticket_number: ticketNumber,
                 status: 'waiting',
                 metadata: { source: 'kiosk_touch' }
@@ -113,7 +95,7 @@ export default function KioskPage() {
                 payload: {
                     ticket_number: ticketNumber,
                     date: timestamp,
-                    department: departmentId // Simple ID for now
+                    department: facultyId // Passing FacultyID as "department" legacy key for now
                 }
             }));
             setLoading(false);

@@ -9,12 +9,12 @@ import { toast } from 'sonner';
 
 export default function DashboardPage() {
     const supabase = createClient();
-    const [departmentId, setDepartmentId] = useState<string | undefined>(undefined);
+    const [facultyId, setFacultyId] = useState<string | undefined>(undefined);
     const [currentTicket, setCurrentTicket] = useState<Ticket | null>(null);
 
     // Custom Hook for Real-time Queue
     const { tickets } = useSupabaseQueue({
-        departmentId: departmentId,
+        facultyId: facultyId,
         statusFilter: 'waiting'
     });
 
@@ -29,14 +29,14 @@ export default function DashboardPage() {
 
             const { data, error } = await supabase
                 .from('agent_assignments')
-                .select('department_id')
+                .select('faculty_id')
                 .eq('user_id', user.id)
                 .single();
 
             if (error) {
-                toast.error('Could not find your department assignment');
+                toast.error('Could not find your faculty assignment');
             } else {
-                setDepartmentId(data.department_id);
+                setFacultyId(data.faculty_id);
             }
         };
         loadAssignment();
@@ -44,11 +44,11 @@ export default function DashboardPage() {
 
     // Call Next Ticket
     const callNext = async () => {
-        if (!departmentId) return;
+        if (!facultyId) return;
 
         try {
             const { data, error } = await supabase
-                .rpc('call_next_ticket', { p_department_id: departmentId });
+                .rpc('call_next_ticket', { p_faculty_id: facultyId });
 
             if (error) throw error;
             if (!data) {
@@ -79,7 +79,7 @@ export default function DashboardPage() {
         }
     };
 
-    if (!departmentId) {
+    if (!facultyId) {
         return <div className="p-8 text-center">Loading assignment... (Ensure you are logged in)</div>;
     }
 
@@ -87,7 +87,7 @@ export default function DashboardPage() {
         <div className="p-8 max-w-4xl mx-auto space-y-8">
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold">Staff Dashboard</h1>
-                <div className="text-slate-500">Dept ID: {departmentId.slice(0, 8)}...</div>
+                <div className="text-slate-500">Faculty ID: {facultyId.slice(0, 8)}...</div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">

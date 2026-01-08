@@ -14,7 +14,7 @@ interface Profile {
     role: 'admin' | 'agent';
 }
 
-interface Department {
+interface Faculty {
     id: string;
     name: string;
 }
@@ -22,9 +22,9 @@ interface Department {
 export default function AdminPage() {
     const supabase = createClient();
     const [profiles, setProfiles] = useState<Profile[]>([]);
-    const [departments, setDepartments] = useState<Department[]>([]);
+    const [faculties, setFaculties] = useState<Faculty[]>([]);
     const [selectedProfile, setSelectedProfile] = useState<string>('');
-    const [selectedDept, setSelectedDept] = useState<string>('');
+    const [selectedFaculty, setSelectedFaculty] = useState<string>('');
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
@@ -40,17 +40,17 @@ export default function AdminPage() {
         if (pError) console.error('Error loading profiles:', pError);
         else setProfiles(profilesData || []);
 
-        // 2. Fetch Departments
-        const { data: deptData, error: dError } = await supabase
-            .from('departments')
+        // 2. Fetch Faculties
+        const { data: facData, error: fError } = await supabase
+            .from('faculties')
             .select('id, name');
 
-        if (dError) console.error('Error loading departments:', dError);
-        else setDepartments(deptData || []);
+        if (fError) console.error('Error loading faculties:', fError);
+        else setFaculties(facData || []);
     };
 
     const handleAssign = async () => {
-        if (!selectedProfile || !selectedDept) return;
+        if (!selectedProfile || !selectedFaculty) return;
         setLoading(true);
 
         try {
@@ -58,8 +58,8 @@ export default function AdminPage() {
                 .from('agent_assignments')
                 .upsert({
                     user_id: selectedProfile,
-                    department_id: selectedDept
-                }, { onConflict: 'user_id, department_id' });
+                    faculty_id: selectedFaculty
+                }, { onConflict: 'user_id, faculty_id' });
 
             if (error) throw error;
             toast.success('Assignment updated');
@@ -76,7 +76,7 @@ export default function AdminPage() {
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Assign Agent to Department</CardTitle>
+                    <CardTitle>Assign Agent to Faculty</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -98,17 +98,17 @@ export default function AdminPage() {
                             </Select>
                         </div>
 
-                        {/* Department Select */}
+                        {/* Faculty Select */}
                         <div className="space-y-2">
-                            <label className="text-sm font-medium">Department</label>
-                            <Select onValueChange={setSelectedDept} value={selectedDept}>
+                            <label className="text-sm font-medium">Faculty</label>
+                            <Select onValueChange={setSelectedFaculty} value={selectedFaculty}>
                                 <SelectTrigger>
-                                    <SelectValue placeholder="Select Department" />
+                                    <SelectValue placeholder="Select Faculty" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {departments.map(d => (
-                                        <SelectItem key={d.id} value={d.id}>
-                                            {d.name}
+                                    {faculties.map(f => (
+                                        <SelectItem key={f.id} value={f.id}>
+                                            {f.name}
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
@@ -117,8 +117,8 @@ export default function AdminPage() {
 
                     </div>
 
-                    <Button onClick={handleAssign} disabled={loading || !selectedProfile || !selectedDept}>
-                        {loading ? 'Assigning...' : 'Assign Department'}
+                    <Button onClick={handleAssign} disabled={loading || !selectedProfile || !selectedFaculty}>
+                        {loading ? 'Assigning...' : 'Assign Faculty'}
                     </Button>
 
                 </CardContent>
