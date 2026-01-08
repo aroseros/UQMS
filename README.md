@@ -68,6 +68,15 @@ If you have a thermal printer:
 2.  Install deps: `npm install`
 3.  Run bridge: `npx tsx server.ts`
 
+### 5. Mobile Kiosk App (Android)
+
+For a native Android experience with direct printer support:
+
+1.  Navigate to `uqms-mobile`.
+2.  Build the app: `eas build --platform android --profile preview`.
+3.  Install the APK on your tablet.
+4.  The app wraps the Kiosk website and handles `print_ticket` events natively.
+
 ## 🔐 Admin & Roles
 
 *   **Create Admin**: Sign up a user, then run `promote_admin.sql` in Supabase.
